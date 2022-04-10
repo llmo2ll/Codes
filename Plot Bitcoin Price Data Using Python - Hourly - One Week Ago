@@ -1,0 +1,96 @@
+pip install python-binance &> /dev/null
+
+from binance.client import Client
+import pandas as pd
+import numpy as np
+from datetime import datetime
+import os
+from tqdm import tqdm
+
+import matplotlib.pyplot as plt
+
+api_key = "3n8KVcurhDeC7jXjVBKBkSjl4nYtLKtRAu4USVOFrjNwXzCEXSCbZhi59q0lEhRR"
+api_secret = "0EBJdh8pcLUZotNXg5SiAcqa9DnWrEmR3GeDJEi8kysxE5K57UpBDGxmgplNRXIo"
+output_path = '/content'
+cashs = ['BTCUSDT']
+
+def set_timeframe(frame):
+  INTERVAL = frame
+  #print(INTERVAL+" Download:")
+  RELATIVE_DATE = "1 week ago UTC"
+  ###############################################################################
+  now = datetime.now()
+  date_time = now.strftime("%Y.%m.%d_%H.%M.%S")
+
+  class BinanceBroker():
+      def __init__(self, interval, relative_date, cashs, path="."):
+          super().__init__()
+          self.path = path
+          self.interval = interval
+          self.relative_date = relative_date
+          self.cashs = cashs
+          self.client = Client(api_key, api_secret)
+      def get_data(self, symbol):
+          try:
+              data = self.client.get_historical_klines(symbol=symbol,
+                                                      interval=self.interval,
+                                                      start_str=self.relative_date)
+              data_df = pd.DataFrame(data,
+                                    columns=['timestamp', '<Open>', '<High>', '<Low>', 'close', 'volume', '<close_time>',
+                                              'quote_av', 'trades',
+                                              'tb_base_av', 'tb_quote_av', 'ignore'])
+              data_df['timestamp'] = pd.to_datetime(data_df['timestamp'], unit='ms')
+            
+              data_df['<DTYYYYMMDD>'] = [d.date() for d in data_df['timestamp']]
+              data_df['<DTYYYYMMDD>'] =  data_df['<DTYYYYMMDD>'].map(lambda x: x.strftime('%Y%m%d'))
+              data_df['<TIME>'] = [d.time() for d in data_df['timestamp']]
+              data_df = data_df[['<DTYYYYMMDD>', '<TIME>', '<Open>', '<High>', '<Low>', 'close', 'volume', '<close_time>']]
+              return data_df
+          except Exception:
+              return []
+
+      def get(self):
+          for cash in tqdm(self.cashs):
+              df = self.get_data(cash)
+              df.to_csv(os.path.join(self.path, cash + "_1hour.csv"), index=False)
+              #print('{} downloaded'.format(cash))
+
+  if __name__ == '__main__':
+      if not os.path.isdir(output_path):
+          os.mkdir(output_path)
+
+      trader = BinanceBroker(interval=INTERVAL,
+                            relative_date=RELATIVE_DATE,
+                            cashs=cashs,
+                            path=output_path)
+      trader.get()
+set_timeframe("1h")
+
+def main():
+    thread = threading.Thread(target=set_timeframe)
+    thread.start()
+
+    thread.join()
+
+Crypto_name = "".join(cashs)
+dataset_1H_Dataset = pd.read_csv(Crypto_name + "_1hour.csv",parse_dates={'Datetime':[0,1]}, index_col=['Datetime'])
+
+    xdpi = 600
+    ydpi = 300
+    imx = xdpi/37.795
+    imy = ydpi/37.795
+    fig,(ax1) = plt.subplots(1,1, figsize=(imx, imy), dpi=60, constrained_layout=True)
+    fig.suptitle(Crypto_name, fontsize=20)
+ 
+    ax1.plot(dataset_1H_Dataset.close, color="blue", marker="D", label="Price"  )
+
+    #####################################################################
+      
+    ax1.spines['bottom'].set_color('0.4')
+    ax1.spines['top'].set_color('0.4')
+    ax1.spines['right'].set_color('0.4')
+    ax1.spines['left'].set_color('0.4')
+    ax1.grid(b=True, which='major', color='0.4', linestyle='-')
+    ax1.legend(loc='upper left',fontsize=15)
+
+    plt.show()
