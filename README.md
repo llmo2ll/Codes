@@ -1,4 +1,4 @@
-- 👋 Hi, I’m m.motaghianfar
+- 👋 Hi, I’m Mohammad Motaghianfar
 - 👀 I’m interested in AI
 - 🌱 I’m currently learning Machine learning and Deep learning
 - 💞️ I’m looking to collaborate on the field of artificial intelligence
